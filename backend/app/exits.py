@@ -11,7 +11,7 @@ from datetime import datetime
 import pandas as pd
 
 from .config import EXITS_FILE, HOLDINGS_FILE
-from .setups import BREADTH_ON
+from . import settings
 
 EXAMPLE = [{"symbol": "RELIANCE", "qty": 10, "avg_price": 1300, "buy_date": "2026-10-01", "horizon": "long"}]
 
@@ -68,7 +68,7 @@ def evaluate(h, f):
         held = len(since)
         if held >= 60 and action == "HOLD":
             action = "TIGHTEN"; reasons.append(f"held {held} sessions (swing time limit 60)")
-    if pd.notna(row.get("breadth")) and row["breadth"] < BREADTH_ON and action == "HOLD":
+    if pd.notna(row.get("breadth")) and row["breadth"] < settings.breadth_on() and action == "HOLD":
         reasons.append("market breadth weak: no new adds")
     return {"symbol": sym, "horizon": horizon, "qty": h.get("qty"), "avg_price": cost, "close": round(close, 2),
             "pnl_pct": round(pnl_pct, 2), "action": action, "stop_level": round(stop_level, 2),

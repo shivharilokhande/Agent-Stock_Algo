@@ -11,13 +11,13 @@ Rules
 import numpy as np
 import pandas as pd
 
-from . import charges
+from . import charges, settings
 from .config import MIN_RISK_PCT, SLIPPAGE_PCT, TRADE_NOTIONAL
 from .indicators import features, market_breadth, rs_percentile
-from .setups import BREADTH_ON, POLICIES, SETUPS
+from .setups import POLICIES, SETUPS
 
 
-def simulate(f, i, stop0, policy):
+def simulate(f, i, stop0, policy, slip_pct=SLIPPAGE_PCT, ch=None):
     """Simulate one trade from signal bar i. Returns dict or None (not entered)."""
     p = POLICIES[policy]
     n = len(f)
@@ -25,7 +25,7 @@ def simulate(f, i, stop0, policy):
     if j0 >= n:
         return None
     o, h, l, c = (f[k].values for k in ("open", "high", "low", "close"))
-    slip = SLIPPAGE_PCT / 100
+    slip = slip_pct / 100
     entry = o[j0] * (1 + slip)
     if not np.isfinite(entry) or not np.isfinite(stop0) or o[j0] <= stop0:
         return None
@@ -75,7 +75,7 @@ def simulate(f, i, stop0, policy):
                   reason=reason, exit_idx=exit_idx)
     qty = TRADE_NOTIONAL / entry
     buy, sell = TRADE_NOTIONAL, qty * tr["exit"]
-    cost = charges.round_trip(buy, sell)
+    cost = charges.round_trip(buy, sell, ch)
     tr["gross_pct"] = (sell / buy - 1) * 100
     tr["net_pnl"] = sell - buy - cost
     tr["net_pct"] = tr["net_pnl"] / buy * 100
@@ -96,6 +96,7 @@ def run(prices, bench, setups=None, feats=None, log=None):
     """prices: {symbol: df}. Returns DataFrame of trades (closed and open)."""
     setups = setups or SETUPS
     feats = feats or build_features(prices, bench)
+    cfg = settings.get()
     rows = []
     for k, (sym, f) in enumerate(feats.items()):
         if len(f) < 260:
@@ -110,7 +111,7 @@ def run(prices, bench, setups=None, feats=None, log=None):
                 for i in idxs:
                     if i < next_free:
                         continue
-                    tr = simulate(f, i, stops[i], pol)
+                    tr = simulate(f, i, stops[i], pol, cfg["slippage_pct"], cfg["charges"])
                     if tr is None:
                         continue
                     tr.update(symbol=sym, setup=st.key, policy=pol, horizon=st.horizon)
@@ -150,9 +151,10 @@ def stats(t):
     }
 
 
-def summarize(trades):
+def summarize(trades, breadth_on=None):
     """Nested summary per setup+policy: all / regime on / regime off / halves / years."""
     out = []
+    BREADTH_ON = settings.breadth_on() if breadth_on is None else breadth_on
     if trades.empty:
         return out
     closed = trades[trades["status"] == "CLOSED"].copy()

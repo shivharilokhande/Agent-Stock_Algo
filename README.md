@@ -19,8 +19,16 @@ cd backend
 Edit `backend/data/holdings.json` with your positions (`symbol, qty, avg_price, buy_date,
 horizon: swing|long`) to get HOLD / TIGHTEN / EXIT per holding.
 
-API: `../.venv/bin/uvicorn app.main:app --port 8100` → `/api/scan`, `/api/exits`,
-`/api/holdings` (GET/PUT), `/api/backtest`, `POST /api/scan/run`.
+## App (UI + API)
+```bash
+./run_app.sh            # then open http://localhost:8100
+```
+Pages: **Today** (breadth gauge + CONSIDER/WATCH signal cards), **Exits** (HOLD/TIGHTEN/EXIT board +
+holdings editor), **Stock** (daily chart, EMA20/SMA50/SMA200, past backtest trades, today's
+stop/target), **Backtest** (results by view and year, re-run button), **Settings** (gate, min PF,
+slippage, delivery charges — stored in `backend/data/settings.json`).
+The UI is plain ES modules in `frontend/` served by FastAPI — no npm build step (React + htm and
+lightweight-charts load from esm.sh, so the browser needs internet).
 
 ## Research
 ```bash

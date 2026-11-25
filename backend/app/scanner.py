@@ -7,13 +7,11 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from . import db
+from . import db, settings
 from .backtest import build_features
 from .config import BENCHMARK, BT_SUMMARY_FILE, BT_TRADES_FILE, NIFTY, SCAN_FILE
-from .setups import BREADTH_ON, POLICIES, SETUPS
+from .setups import POLICIES, SETUPS
 
-MIN_PF = 1.2          # a setup is "CONSIDER" only if its breadth-matched backtest PF >= this
-MIN_TRADES = 100
 
 
 def _r(x, n=2):
@@ -29,7 +27,7 @@ def load_backtest():
     return by, trades
 
 
-def best_policy(setup, by, breadth_ok):
+def best_policy(setup, by, breadth_ok, MIN_TRADES=100):
     """Exit policy with the best breadth-matched profit factor (min trade count)."""
     key = "breadth_on" if breadth_ok else "breadth_off"
     best = None
@@ -41,6 +39,8 @@ def best_policy(setup, by, breadth_ok):
 
 
 def run(write=True):
+    cfg = settings.get()
+    BREADTH_ON, MIN_PF, MIN_TRADES = cfg["breadth_threshold_pct"] / 100, cfg["min_pf"], cfg["min_trades"]
     uni = db.load_universe().set_index("symbol")
     allp = db.load_prices()
     bench = allp.pop(BENCHMARK, None)
@@ -60,7 +60,7 @@ def run(write=True):
         for st in SETUPS:
             if not bool(st.signal(f).fillna(False).iat[-1]):
                 continue
-            pol, sstats = best_policy(st, by, breadth_ok)
+            pol, sstats = best_policy(st, by, breadth_ok, MIN_TRADES)
             close = float(f["close"].iat[-1])
             stop = float(st.stop(f).iat[-1])
             stop = min(stop, close * 0.99)
