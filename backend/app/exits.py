@@ -8,6 +8,7 @@ highest close since purchase). Long rules mirror the LONG exit (15% stop, close 
 import json
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 
 from .config import EXITS_FILE, HOLDINGS_FILE
@@ -50,6 +51,8 @@ def evaluate(h, f):
             if close < 0.75 * row["hi252"]:
                 action = "TIGHTEN"; reasons.append("more than 25% below its 52-week high")
         stop_level = max(stop, float(row["sma150"]))
+        plan = {"rule": "15% stop under cost, sell at the next open after a close below the 150-day average",
+                "hard_stop": round(stop, 2), "trend_exit": round(float(row["sma150"]), 2), "target": None, "exit_by": None}
     else:
         atr_at_buy = float(since["atr14"].iat[0]) if pd.notna(since["atr14"].iat[0]) else atr
         init = cost - 2 * atr_at_buy
@@ -65,6 +68,10 @@ def evaluate(h, f):
             risk = cost - init
             if risk > 0 and close - cost >= 2 * risk:
                 action = "TIGHTEN"; reasons.append("up 2R or more: consider booking part")
+        plan = {"rule": "Stop 2×ATR under cost, then highest close since entry − 3×ATR; never lowered",
+                "hard_stop": round(init, 2), "trail_now": round(chandelier, 2),
+                "target": round(cost + 2 * (cost - init), 2) if cost > init else None,
+                "exit_by": str(np.busday_offset(bd.date(), 60, roll="forward"))}
         held = len(since)
         if held >= 60 and action == "HOLD":
             action = "TIGHTEN"; reasons.append(f"held {held} sessions (swing time limit 60)")
@@ -72,7 +79,8 @@ def evaluate(h, f):
         reasons.append("market breadth weak: no new adds")
     return {"symbol": sym, "horizon": horizon, "qty": h.get("qty"), "avg_price": cost, "close": round(close, 2),
             "pnl_pct": round(pnl_pct, 2), "action": action, "stop_level": round(stop_level, 2),
-            "reasons": reasons or ["trend intact"], "date": str(f.index[-1].date())}
+            "reasons": reasons or ["trend intact"], "date": str(f.index[-1].date()), "plan": plan,
+            "to_stop_pct": round((stop_level / close - 1) * 100, 2)}
 
 
 def run(feats, write=True):

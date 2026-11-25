@@ -6,6 +6,11 @@ const MAIN = [
   ["min_trades", "Minimum backtest trades", "A setup needs at least this many past trades before it can be considered", 10],
   ["slippage_pct", "Slippage per side (%)", "Used by the backtest. Re-run it after changing", 0.01],
 ];
+const SIZE = [
+  ["capital", "Capital (₹)", "Used to size every position", 1000],
+  ["risk_pct", "Risk per trade (% of capital)", "What you lose if the stop is hit. Quantity = risk ÷ (entry − stop)", 0.1],
+  ["max_position_pct", "Largest position (% of capital)", "Caps the quantity when the stop is very tight", 1],
+];
 const CHG = [
   ["stt_pct", "STT (% both sides)"], ["exch_pct", "Exchange txn (% both sides)"], ["sebi_pct", "SEBI (% both sides)"],
   ["stamp_buy_pct", "Stamp duty (% buy side)"], ["gst_pct", "GST (% on brokerage+exchange+SEBI)"],
@@ -27,7 +32,7 @@ export default function Settings() {
     try {
       setS(await api("/settings", { method: "PUT", body: s }));
       if (thenBacktest) { const m = await api("/backtest/run", { method: "POST" }); show(`Saved. Backtest re-run: ${m.trades} trades`); }
-      else show("Settings saved");
+      else { await api("/scan/run", { method: "POST" }); show("Saved. Plans and quantities updated"); }
     } catch (e) { show("Failed: " + e.message); }
     setBusy(null);
   };
@@ -43,6 +48,15 @@ export default function Settings() {
       <h3>Signals</h3>
       <div className="form">
         ${MAIN.map(([k, label, help, step]) => html`
+          <label key=${k + "l"}>${label}</label>
+          <input key=${k + "i"} className="input" type="number" step=${step} value=${s[k]} onInput=${(e) => set(k, e.target.value)} />
+          <span key=${k + "h"} className="help">${help}</span>`)}
+      </div>
+    </div>
+    <div className="panel" style=${{ marginBottom: "12px" }}>
+      <h3>Position sizing</h3>
+      <div className="form">
+        ${SIZE.map(([k, label, help, step]) => html`
           <label key=${k + "l"}>${label}</label>
           <input key=${k + "i"} className="input" type="number" step=${step} value=${s[k]} onInput=${(e) => set(k, e.target.value)} />
           <span key=${k + "h"} className="help">${help}</span>`)}

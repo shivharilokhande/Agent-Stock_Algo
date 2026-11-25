@@ -19,6 +19,15 @@ function Gate({ m }) {
     </div>`;
 }
 
+function exitShort(c) {
+  const e = c.plan.exit;
+  if (e.rule === "TRAIL") return html`Trail 3×ATR off high<div className="muted mono">by ${day(e.exit_by)}</div>`;
+  if (e.rule === "R2") return html`Stop or target<div className="muted mono">by ${day(e.exit_by)}</div>`;
+  if (e.rule === "MA5") return html`Close above SMA5<div className="muted mono">by ${day(e.exit_by)}</div>`;
+  if (e.rule === "LONG") return html`Close below SMA150<div className="muted mono">no time limit</div>`;
+  return e.rule;
+}
+
 function Group({ g, minPf }) {
   const s = g.stats || {};
   return html`
@@ -36,19 +45,20 @@ function Group({ g, minPf }) {
         </div>
       </div>
       <div className="tbl-wrap"><table>
-        <thead><tr><th>Stock</th><th></th><th className="num">Close</th><th className="num">Stop</th>${g.hasTarget ? html`<th className="num">Target</th>` : null}
-          <th className="num">RS rank</th><th className="num">vs EMA20</th><th className="num">Turnover</th><th>On this stock before</th></tr></thead>
+        <thead><tr><th>Stock</th><th></th><th className="num">Entry</th><th className="num">Don't pay above</th><th className="num">Stop loss</th>
+          <th className="num">${g.hasTarget ? "Target" : "2R level"}</th><th>Exit</th><th className="num">Qty</th><th className="num">RS rank</th><th>On this stock before</th></tr></thead>
         <tbody>${g.rows.map((c) => {
           const h = c.stock_history || {};
           return html`<tr key=${c.symbol} className=${c.action === "CONSIDER" ? "consider" : ""}>
             <td><a className="sym" href=${"#/stock/" + encodeURIComponent(c.symbol)}>${c.symbol}</a><span className="name" title=${c.name}>${c.name}</span></td>
             <td><${Badge} v=${c.action} /></td>
-            <td className="num">${num(c.close)}</td>
-            <td className="num">${num(c.stop)}<div className="muted mono">${pct(-c.risk_pct, 1)}</div></td>
-            ${g.hasTarget ? html`<td className="num">${num(c.target)}</td>` : null}
+            <td className="num">${num(c.plan.entry.ref_price)}<div className="muted mono">next open</div></td>
+            <td className="num">${num(c.plan.entry.max_price)}</td>
+            <td className="num down">${num(c.stop)}<div className="muted mono">${pct(-c.risk_pct, 1)}</div></td>
+            <td className="num">${(() => { const l = (c.plan.exit.levels || []).find((x) => x.label.startsWith("Target") || x.label === "2R level"); return l ? html`${num(l.price)}<div className="muted mono">${pct(l.pct, 1)}</div>` : html`<span className="muted">—</span>`; })()}</td>
+            <td className="sec">${exitShort(c)}</td>
+            <td className="num">${c.plan.size.qty}<div className="muted mono">₹${num(c.plan.size.position_value, 0)}</div></td>
             <td className="num">${c.rs_pct ?? "—"}</td>
-            <td className="num">${pct(c.ext_from_ema20_pct, 1)}</td>
-            <td className="num mono">₹${num(c.turnover_cr, 0)} cr</td>
             <td className="sec">${h.trades ? html`${h.trades} trades · win ${h.win_pct}% · avg <span className=${h.avg_net_pct >= 0 ? "up" : "down"}>${pct(h.avg_net_pct, 2)}</span>` : html`<span className="muted">none</span>`}</td>
           </tr>`;
         })}</tbody>
@@ -109,6 +119,6 @@ export default function Today() {
       </div>
       ${groups.length ? groups.map((g) => html`<${Group} key=${g.key} g=${g} minPf=${data.market.min_pf ?? 1.2} />`)
         : html`<div className="empty">No signals match these filters</div>`}
-      <p className="muted" style=${{ fontSize: "12px" }}>Buy at the next open and skip it if the open is below the stop. Consider needs breadth above the gate and the setup's backtest PF at or above ${data.market.min_pf ?? 1.2}.</p>` : null}
+      <p className="muted" style=${{ fontSize: "12px" }}>Entry is the next open, sized on the close to risk ${data.signals[0] ? "₹" + num(data.signals[0].plan.size.risk_budget, 0) : "your set amount"} per trade. Skip it if the open is at or below the stop, or above the don't-pay-above price. Open a stock for its full exit plan. Consider needs breadth above the gate and the setup's backtest PF at or above ${data.market.min_pf ?? 1.2}.</p>` : null}
     ${toast}`;
 }

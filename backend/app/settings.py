@@ -11,12 +11,15 @@ DEFAULTS = {
     "min_pf": 1.2,                 # setup's breadth-matched backtest PF needed for CONSIDER
     "min_trades": 100,             # ...with at least this many backtest trades
     "slippage_pct": SLIPPAGE_PCT,  # per side
+    "capital": 200000,             # Rs used to size positions
+    "risk_pct": 1.0,               # % of capital you accept losing if the stop is hit
+    "max_position_pct": 25.0,      # cap on one position as % of capital
     "charges": dict(CHARGES),
 }
 
 LIMITS = {
     "breadth_threshold_pct": (0, 100), "min_pf": (0.5, 5), "min_trades": (0, 10000),
-    "slippage_pct": (0, 2),
+    "slippage_pct": (0, 2), "capital": (1000, 1e9), "risk_pct": (0.1, 5), "max_position_pct": (1, 100),
 }
 
 

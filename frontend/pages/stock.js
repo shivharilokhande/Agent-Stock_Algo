@@ -28,14 +28,45 @@ function Chart({ d, combo }) {
     });
     marks.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
     candles.setMarkers(marks);
-    d.signals.forEach((s) => {
+    const s = d.signals[0];
+    if (s) {
       candles.createPriceLine({ price: s.stop, color: "#ededed", lineStyle: 2, lineWidth: 1, title: "stop" });
-      if (s.target) candles.createPriceLine({ price: s.target, color: C.up, lineStyle: 2, lineWidth: 1, title: "target" });
-    });
+      candles.createPriceLine({ price: s.plan.entry.max_price, color: C.ema, lineStyle: 3, lineWidth: 1, title: "max entry" });
+      (s.plan.exit.levels || []).filter((l) => l.price && l.label !== "Stop loss").forEach((l) =>
+        candles.createPriceLine({ price: l.price, color: l.label.includes("exit") ? "#a1a1a6" : C.up, lineStyle: 2, lineWidth: 1, title: l.label.replace(" level", "") }));
+    }
     chart.timeScale().fitContent();
     return () => chart.remove();
   }, [d, combo]);
   return html`<div className="chart" ref=${ref}></div>`;
+}
+
+function Plan({ s }) {
+  const p = s.plan;
+  return html`
+    <div className="grid2" style=${{ marginBottom: "24px" }}>
+      <div className="panel">
+        <h3>Entry <span className="muted" style=${{ fontWeight: 400 }}>· ${s.label}</span> <${Badge} v=${s.action} /></h3>
+        <div className="tbl-wrap" style=${{ background: "var(--bg)" }}><table><tbody>
+          <tr><td>How</td><td className="num">${p.entry.how}</td></tr>
+          <tr><td>Reference price</td><td className="num">${num(p.entry.ref_price)}</td></tr>
+          <tr><td>Don't pay above</td><td className="num">${num(p.entry.max_price)}</td></tr>
+          <tr><td>Skip if it opens at or below</td><td className="num down">${num(p.entry.skip_if_open_below)}</td></tr>
+          <tr><td>Quantity</td><td className="num">${p.size.qty} shares · ₹${num(p.size.position_value, 0)}</td></tr>
+          <tr><td>Loss if stopped</td><td className="num down">₹${num(p.size.risk_amount, 0)} <span className="muted mono">budget ₹${num(p.size.risk_budget, 0)}</span></td></tr>
+        </tbody></table></div>
+        <p className="muted" style=${{ fontSize: "12px", margin: "12px 0 0" }}>${p.entry.note}${p.size.capped_by_position_limit ? ". Quantity capped by the largest-position setting" : ""}</p>
+      </div>
+      <div className="panel">
+        <h3>Exit <span className="muted" style=${{ fontWeight: 400 }}>· rule ${p.exit.rule}</span></h3>
+        <div className="tbl-wrap" style=${{ background: "var(--bg)" }}><table><tbody>
+          ${p.exit.levels.map((l) => html`<tr key=${l.label}>
+            <td>${l.label}</td>
+            <td className=${"num " + (l.label === "Stop loss" ? "down" : "")}>${l.price != null ? html`${num(l.price)} <span className="muted mono">${pct(l.pct, 1)}</span>` : ""}</td>
+            <td className="wrap" style=${{ minWidth: "220px", fontSize: "12px" }}>${l.when}</td></tr>`)}
+        </tbody></table></div>
+      </div>
+    </div>`;
 }
 
 export default function Stock({ arg }) {
@@ -80,7 +111,7 @@ export default function Stock({ arg }) {
         <div className="stat"><div className="k">RS rank (12-month)</div><div className="v">${d.stats.rs_pct ?? "—"}</div><div className="s">percentile in NIFTY 500</div></div>
         <div className="stat"><div className="k">RSI 14</div><div className="v">${d.stats.rsi14 ?? "—"}</div><div className="s">Turnover ₹${num(d.stats.turnover_cr, 1)} cr/day</div></div>
       </div>
-      ${d.signals.length ? html`<div className="note">Signal today: ${d.signals.map((s) => html`<span key=${s.setup}><${Badge} v=${s.action} /> ${s.label} — stop ${num(s.stop)}${s.target ? `, target ${num(s.target)}` : ""} </span>`)}</div>` : null}
+      ${d.signals.length ? html`<${Plan} s=${d.signals[0]} />` : html`<div className="note">No signal on this stock at the latest close</div>`}
       <div className="row" style=${{ marginBottom: "8px" }}>
         <span className="sec">Backtest trades</span>
         <select className="input" value=${combo} onChange=${(e) => setCombo(e.target.value)}>
@@ -91,7 +122,7 @@ export default function Stock({ arg }) {
       <${Chart} d=${d} combo=${combo} />
       <div className="legend">
         <span><i style=${{ background: C.ema }}></i>EMA 20</span><span><i style=${{ background: C.s50 }}></i>SMA 50</span>
-        <span><i style=${{ background: C.s200 }}></i>SMA 200</span><span><i style=${{ background: "#ededed" }}></i>Stop today</span><span>B marks a backtest entry, the % marks its exit</span>
+        <span><i style=${{ background: C.s200 }}></i>SMA 200</span><span><i style=${{ background: "#ededed" }}></i>Stop</span><span><i style=${{ background: C.up }}></i>Target / R levels</span><span>B marks a backtest entry, the % marks its exit</span>
       </div>
       ${rows.length ? html`
         <div className="tbl-wrap"><table>

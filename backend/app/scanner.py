@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from . import db, settings
+from . import db, plan, settings
 from .backtest import build_features
 from .config import BENCHMARK, BT_SUMMARY_FILE, BT_TRADES_FILE, NIFTY, SCAN_FILE
 from .setups import POLICIES, SETUPS
@@ -79,6 +79,7 @@ def run(write=True):
                 "atr": _r(f["atr14"].iat[-1]), "ext_from_ema20_pct": _r(f["ext20"].iat[-1] * 100),
                 "rs_pct": _r(f["rs_pct"].iat[-1] * 100, 0) if pd.notna(f["rs_pct"].iat[-1]) else None,
                 "turnover_cr": _r(f["turnover_cr"].iat[-1], 1),
+                "plan": plan.build(f, pol, stop, cfg),
                 "setup_backtest": sstats,
                 "stock_history": {"trades": int(len(hist)),
                                   "win_pct": _r((hist["net_pnl"] > 0).mean() * 100, 0) if len(hist) else None,

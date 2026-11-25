@@ -1,4 +1,4 @@
-import { html, useState, useEffect, api, useApi, num, pct, cls, Badge, Loading, ErrorBox, useToast, useUniverse } from "../lib.js";
+import { html, useState, useEffect, api, useApi, num, pct, cls, day, Badge, Loading, ErrorBox, useToast, useUniverse } from "../lib.js";
 
 const BLANK = { symbol: "", qty: "", avg_price: "", buy_date: "", horizon: "swing" };
 
@@ -63,7 +63,7 @@ export default function Exits() {
       <div className="tbl-wrap">
         <table>
           <thead><tr><th>Action</th><th>Symbol</th><th>Horizon</th><th className="num">Qty</th><th className="num">Avg</th>
-            <th className="num">Close</th><th className="num">P&L</th><th className="num">Stop level</th><th>Why</th></tr></thead>
+            <th className="num">Close</th><th className="num">P&L</th><th className="num">Exit below</th><th className="num">Target</th><th>Exit by</th><th>Why</th></tr></thead>
           <tbody>${hs.map((h) => html`
             <tr key=${h.symbol + h.horizon}>
               <td><${Badge} v=${h.action} /></td>
@@ -73,7 +73,9 @@ export default function Exits() {
               <td className="num">${num(h.avg_price)}</td>
               <td className="num">${num(h.close)}</td>
               <td className=${"num " + cls(h.pnl_pct)}>${pct(h.pnl_pct, 2)}</td>
-              <td className="num">${num(h.stop_level)}</td>
+              <td className="num down">${num(h.stop_level)}<div className="muted mono">${pct(h.to_stop_pct, 1)}</div></td>
+              <td className="num">${h.plan?.target ? num(h.plan.target) : html`<span className="muted">trail</span>`}</td>
+              <td className="sec">${h.plan?.exit_by ? day(h.plan.exit_by) : html`<span className="muted">trend exit</span>`}</td>
               <td className="wrap">${(h.reasons || []).join("; ")}</td>
             </tr>`)}</tbody>
         </table>
