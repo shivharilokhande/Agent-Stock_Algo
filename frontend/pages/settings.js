@@ -1,10 +1,10 @@
 import { html, useState, useEffect, api, useApi, Loading, ErrorBox, useToast } from "../lib.js";
 
 const MAIN = [
-  ["breadth_threshold_pct", "Market breadth gate (%)", "Below this share of NIFTY 500 above their own 50-day SMA, every signal is WATCH. Re-run the backtest after changing it.", 1],
-  ["min_pf", "Minimum setup PF for CONSIDER", "The setup's backtest profit factor in the current breadth state must reach this.", 0.05],
-  ["min_trades", "Minimum backtest trades", "A setup needs at least this many past trades before it can be CONSIDER.", 10],
-  ["slippage_pct", "Slippage per side (%)", "Used by the backtest. Re-run it after changing.", 0.01],
+  ["breadth_threshold_pct", "Market breadth gate (%)", "Below this share of NIFTY 500 above their own 50-day SMA, every signal stays Watch. Re-run the backtest after changing it", 1],
+  ["min_pf", "Minimum setup PF to consider", "The setup's backtest profit factor in the current breadth state must reach this", 0.05],
+  ["min_trades", "Minimum backtest trades", "A setup needs at least this many past trades before it can be considered", 10],
+  ["slippage_pct", "Slippage per side (%)", "Used by the backtest. Re-run it after changing", 0.01],
 ];
 const CHG = [
   ["stt_pct", "STT (% both sides)"], ["exch_pct", "Exchange txn (% both sides)"], ["sebi_pct", "SEBI (% both sides)"],
@@ -23,7 +23,7 @@ export default function Settings() {
   const set = (k, v) => setS({ ...s, [k]: v });
   const setC = (k, v) => setS({ ...s, charges: { ...s.charges, [k]: v } });
   const save = async (thenBacktest) => {
-    setBusy(thenBacktest ? "Saving and re-running backtest…" : "Saving…");
+    setBusy(thenBacktest ? "Re-running backtest…" : "Saving…");
     try {
       setS(await api("/settings", { method: "PUT", body: s }));
       if (thenBacktest) { const m = await api("/backtest/run", { method: "POST" }); show(`Saved. Backtest re-run: ${m.trades} trades`); }
@@ -33,13 +33,13 @@ export default function Settings() {
   };
   return html`
     <div className="head">
-      <div><h1>Settings</h1><p>Stored in the app (data/settings.json), not in code.</p></div>
+      <div><h1>Settings</h1><p>Saved in the app, in data/settings.json</p></div>
       <div className="row">
         <button className="btn" disabled=${!!busy} onClick=${() => save(false)}>Save</button>
-        <button className="btn primary" disabled=${!!busy} onClick=${() => save(true)}>${busy || "Save + re-run backtest"}</button>
+        <button className="btn primary" disabled=${!!busy} onClick=${() => save(true)}>${busy || "Save and re-run backtest"}</button>
       </div>
     </div>
-    <div className="panel" style=${{ marginBottom: "14px" }}>
+    <div className="panel" style=${{ marginBottom: "12px" }}>
       <h3>Signals</h3>
       <div className="form">
         ${MAIN.map(([k, label, help, step]) => html`
@@ -56,7 +56,7 @@ export default function Settings() {
           <input key=${k + "i"} className="input" type="number" step="0.0001" value=${s.charges[k]} onInput=${(e) => setC(k, e.target.value)} />
           <span key=${k + "h"} className="help"></span>`)}
       </div>
-      <p className="faint" style=${{ fontSize: "12px", margin: "12px 0 0" }}>Approximate Zerodha-style delivery charges — check them against one of your contract notes.</p>
+      <p className="muted" style=${{ fontSize: "12px", margin: "16px 0 0" }}>Approximate Zerodha-style delivery charges. Check them against one of your contract notes</p>
     </div>
     ${toast}`;
 }

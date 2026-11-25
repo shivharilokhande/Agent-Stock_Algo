@@ -18,7 +18,7 @@ function Editor({ onSaved, show }) {
     setSaving(false);
   };
   return html`
-    <div className="panel" style=${{ marginTop: "18px" }}>
+    <div className="panel" style=${{ marginTop: "32px" }}>
       <h3>Your holdings</h3>
       <${ErrorBox} err=${err} />
       <datalist id="syms">${uni.map((u) => html`<option key=${u.symbol} value=${u.symbol}>${u.name}</option>`)}</datalist>
@@ -34,15 +34,15 @@ function Editor({ onSaved, show }) {
                 <td><input className="input" type="date" value=${r.buy_date || ""} onInput=${(e) => upd(i, "buy_date", e.target.value)} /></td>
                 <td><select className="input" value=${r.horizon} onChange=${(e) => upd(i, "horizon", e.target.value)}>
                   <option value="swing">Swing</option><option value="long">Long-term</option></select></td>
-                <td><button className="btn danger" onClick=${() => setRows(rows.filter((_, j) => j !== i))}>Remove</button></td>
+                <td><button className="btn quiet" onClick=${() => setRows(rows.filter((_, j) => j !== i))}>Remove</button></td>
               </tr>`)}
           </tbody>
         </table>
       </div>
       <div className="row" style=${{ marginTop: "12px" }}>
-        <button className="btn" onClick=${() => setRows([...rows, { ...BLANK }])}>+ Add holding</button>
+        <button className="btn" onClick=${() => setRows([...rows, { ...BLANK }])}>Add holding</button>
         <button className="btn primary" disabled=${saving} onClick=${save}>${saving ? "Saving…" : "Save and re-check"}</button>
-        <span className="faint">Swing: 2×ATR stop under cost, then 3×ATR trail off the highest close. Long: 15% stop, exit on a close below SMA150.</span>
+        <span className="muted" style=${{ fontSize: "12px" }}>Swing uses a 2×ATR stop under cost, then a 3×ATR trail off the highest close. Long-term uses a 15% stop and exits on a close below the 150-day average</span>
       </div>
     </div>`;
 }
@@ -54,8 +54,8 @@ export default function Exits() {
   const counts = ["EXIT", "TIGHTEN", "HOLD"].map((a) => [a, hs.filter((h) => h.action === a).length]);
   return html`
     <div className="head">
-      <div><h1>Exit board</h1><p>What to do with what you already hold, from the latest daily close.</p></div>
-      <div className="row">${counts.map(([a, n]) => html`<span key=${a} className="row"><${Badge} v=${a} /> <b className="mono">${n}</b></span>`)}</div>
+      <div><h1>Exits</h1><p>Hold, tighten or exit for each position, checked against the latest daily close</p></div>
+      <div className="row">${counts.map(([a, n]) => html`<span key=${a} className="row" style=${{ marginLeft: "8px" }}><${Badge} v=${a} /><span className="mono sec">${n}</span></span>`)}</div>
     </div>
     <${ErrorBox} err=${err} />
     ${loading && !data ? html`<${Loading} />` : null}
@@ -67,19 +67,19 @@ export default function Exits() {
           <tbody>${hs.map((h) => html`
             <tr key=${h.symbol + h.horizon}>
               <td><${Badge} v=${h.action} /></td>
-              <td><a href=${"#/stock/" + h.symbol}><b>${h.symbol}</b></a></td>
+              <td><a className="sym" href=${"#/stock/" + h.symbol}>${h.symbol}</a></td>
               <td className="muted">${h.horizon || "—"}</td>
               <td className="num">${h.qty ?? "—"}</td>
               <td className="num">${num(h.avg_price)}</td>
               <td className="num">${num(h.close)}</td>
               <td className=${"num " + cls(h.pnl_pct)}>${pct(h.pnl_pct, 2)}</td>
               <td className="num">${num(h.stop_level)}</td>
-              <td style=${{ whiteSpace: "normal", minWidth: "260px" }}>${(h.reasons || []).join("; ")}</td>
+              <td className="wrap">${(h.reasons || []).join("; ")}</td>
             </tr>`)}</tbody>
         </table>
       </div>
-      <div className="faint" style=${{ fontSize: "12px", marginTop: "8px" }}>Checked ${(data.generated || "").replace("T", " ")}. Stop levels are on the daily close.</div>`
-      : !loading ? html`<div className="empty">No holdings yet — add them below.</div>` : null}
+      <div className="muted mono" style=${{ marginTop: "8px" }}>Checked ${(data.generated || "").replace("T", " ").slice(0, 16)} · stop levels use the daily close</div>`
+      : !loading ? html`<div className="empty">No holdings yet. Add them below</div>` : null}
     <${Editor} onSaved=${setData} show=${show} />
     ${toast}`;
 }

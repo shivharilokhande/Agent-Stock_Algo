@@ -90,8 +90,9 @@ def run(write=True):
     out = {"generated": datetime.now().isoformat(timespec="seconds"), "as_of": str(last.date()),
            "market": {"breadth_pct": round(breadth * 100, 1), "breadth_ok": breadth_ok,
                       "breadth_threshold_pct": int(BREADTH_ON * 100), "nifty500_above_200sma": bench_ok,
-                      "note": ("Breadth healthy: swing setups have had an edge in this state." if breadth_ok else
-                               "Breadth weak: swing setups lost money in this state in the backtest. Prefer to wait.")},
+                      "min_pf": MIN_PF, "min_trades": MIN_TRADES,
+                      "note": ("Swing setups have made money in this state in the backtest" if breadth_ok else
+                               "Swing setups lost money in this state in the backtest, so every signal stays Watch")},
            "counts": {"stocks": len(feats), "signals": len(cards),
                       "consider": sum(c["action"] == "CONSIDER" for c in cards)},
            "signals": cards}

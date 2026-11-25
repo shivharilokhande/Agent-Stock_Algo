@@ -21,7 +21,7 @@ function route() {
 }
 
 function Icon({ d }) {
-  return html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d=${d} /></svg>`;
+  return html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d=${d} /></svg>`;
 }
 
 function App() {
@@ -43,8 +43,8 @@ function App() {
     <div className="shell">
       <aside className="side">
         <div className="brand">
-          <div className="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04130d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l6-7 5 4 7-9" /></svg></div>
-          <div>AgentStockAlgo<small>NIFTY 500 · recommendations</small></div>
+          <div className="mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 18L10 11l4 4 6-8" /><path d="M3 12h18" strokeOpacity=".45" strokeDasharray="2 3" /></svg></div>
+          <span>AgentStockAlgo</span>
         </div>
         <nav className="nav">
           ${NAV.map(([k, label, d]) => html`
@@ -54,8 +54,8 @@ function App() {
             </a>`)}
         </nav>
         <div className="side-foot">
-          ${health ? html`Prices updated<br />${(health.last_ingest || "—").replace("T", " ")}` : "API offline"}
-          <br />No orders are ever placed.
+          <p>${health ? `Prices ${(health.last_ingest || "—").replace("T", " ").slice(0, 16)}` : "API offline"}</p>
+          <p>Recommendations only, no orders</p>
         </div>
       </aside>
       <main className="main"><${Page} arg=${r.arg} /></main>

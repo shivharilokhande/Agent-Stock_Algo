@@ -31,11 +31,25 @@ export const num = (v, d = 2) =>
 export const pct = (v, d = 1, sign = true) =>
   v == null || Number.isNaN(v) ? "—" : `${sign && v > 0 ? "+" : ""}${Number(v).toFixed(d)}%`;
 export const cls = (v) => (v == null ? "" : v > 0 ? "up" : v < 0 ? "down" : "");
-export const pfCls = (pf) => (pf == null ? "faint" : pf >= 1.3 ? "up" : pf >= 1.0 ? "muted" : "down");
+export const pfCls = (pf) => (pf == null ? "muted" : pf >= 1.2 ? "up" : pf >= 1.0 ? "sec" : "down");
+export const day = (iso) => (iso ? new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
 export const go = (hash) => { location.hash = hash; };
 
-const BADGE = { CONSIDER: "b-green", WATCH: "b-grey", EXIT: "b-red", TIGHTEN: "b-amber", HOLD: "b-green", UNKNOWN: "b-grey" };
-export const Badge = ({ v }) => html`<span className=${"badge " + (BADGE[v] || "b-grey")}>${v}</span>`;
+const TAG = { CONSIDER: "t-pos", WATCH: "t-quiet", EXIT: "t-neg", TIGHTEN: "t-warn", HOLD: "t-quiet", UNKNOWN: "t-quiet" };
+const WORD = { CONSIDER: "Consider", WATCH: "Watch", EXIT: "Exit", TIGHTEN: "Tighten", HOLD: "Hold", UNKNOWN: "Unknown" };
+export const Badge = ({ v }) => html`<span className=${"tag " + (TAG[v] || "t-quiet")}>${WORD[v] || v}</span>`;
+
+/* Signature: a bar with a threshold tick. value/min on the same scale; max caps the bar. */
+export function Track({ value, min, max, small = false, title }) {
+  const w = value == null ? 0 : Math.max(0, Math.min(1, value / max)) * 100;
+  const color = value == null ? "var(--raised)" : value >= min ? "var(--pos)" : value >= min * 0.85 ? "var(--text-2)" : "var(--neg)";
+  return html`<span className=${"track" + (small ? " sm" : "")} title=${title || ""}>
+    <i style=${{ width: w + "%", background: color }}></i><b style=${{ left: (min / max) * 100 + "%" }}></b></span>`;
+}
+export function PfBar({ pf, min = 1.2 }) {
+  return html`<span className="pf"><${Track} value=${pf} min=${min} max=${2.5} small=${true} title=${`PF ${pf ?? "—"} · line at ${min}`} />
+    <span className=${pfCls(pf)}>${pf ?? "—"}</span></span>`;
+}
 
 export function Loading({ what = "Loading" }) { return html`<div className="empty">${what}…</div>`; }
 export function ErrorBox({ err }) { return err ? html`<div className="err">${err}</div>` : null; }
